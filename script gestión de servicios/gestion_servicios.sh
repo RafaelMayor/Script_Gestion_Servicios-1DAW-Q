@@ -3,8 +3,8 @@
 ################################
 #
 # Nombre: gestion_servicios.sh
-# Autor: Rafael Martín Mayor <rmarmay2004@gmail.com>
-         Juan Luis García Jorge <juanluisgarciajorge@gmail.com>
+#Autor: Rafael Martín Mayor <rmarmay2004@gmail.com>
+#       Juan Luis García Jorge <juanluisgarciajorge@gmail.com>
 #
 # Objetivo: Gestionar servicios.
 #
