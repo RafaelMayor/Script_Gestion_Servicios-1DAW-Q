@@ -3,7 +3,7 @@
 ################################
 #
 # Nombre: gestion_servicios.sh
-# Autores: Juan Luis García Jorge <juanluisgarciajorge@gmail.com> y Rafael Martín Mayor <rmarmay2004@gmail.com>
+# Autor: Rafael Martín Mayor <rmarmay2004@gmail.com>
 #
 # Objetivo: Gestionar servicios.
 #
@@ -11,34 +11,40 @@
 # Salidas: Gestionado de dicho servicio.
 #
 # Historial:
-#   2024-02-22: versión final
+#   2024-04-10: versión final
 #
 ################################
 
 
-# Función para verificar si un servicio existe
-verificar_servicio() {
-    servicio=$1
-    if ! systemctl list-unit-files --type=service | grep -q "$servicio.service"; then
-        echo "Error: El servicio $servicio no existe."
-        exit 10
-    fi
-}
 
-# Función para obtener el estado del servicio
-obtener_estado_servicio() {
-    servicio=$1
-    activo=$(systemctl is-active $servicio --quiet && echo 'NO' || echo 'SÍ')
-    habilitado=$(systemctl is-enabled $servicio --quiet && echo 'NO' || echo 'SÍ')
-    enmascarado=$(systemctl is-masked $servicio --quiet && echo 'NO' || echo 'SÍ')
+servicio=$1
 
+while [ -z "$servicio" ]; do
+    read -p "Indique el nombre del servicio: " servicio
+done
+
+verificar_servicio=$( systemctl list-unit-files --type=service | grep "$servicio.service" )
+
+
+if [ -z "$verificar_servicio" ]; then
+    echo "Error: El servicio $servicio no existe."
+    exit 10
+fi
+
+
+
+mostrar_estado_servicio() {
+    activo=$(systemctl is-active $servicio --quiet && echo 'SÍ' || echo 'NO')
+    habilitado=$(systemctl is-enabled $servicio --quiet && echo 'SÍ' || echo 'NO')
+    enmascarado=$(systemctl status $servicio | grep -q "masked" && echo 'SÍ' || echo 'NO')
+    echo ""
     echo "Resumen del estado del servicio $servicio:"
     echo "Activo: $activo"
     echo "Habilitado: $habilitado"
     echo "Enmascarado: $enmascarado"
+    echo ""
 }
 
-# Función para mostrar el menú
 mostrar_menu() {
     echo "Menú:"
     echo "1. Activar/Desactivar servicio"
@@ -58,83 +64,70 @@ mostrar_menu() {
     echo "15. SALIR"
 }
 
-# Verificar si se proporciona un servicio como argumento o pedir al usuario
-if [ -z "$1" ]; then
-    read -p "Introduce el nombre del servicio: " servicio
-else
-    servicio=$1
-fi
 
-# Verificar si el servicio existe
-verificar_servicio $servicio
-
-# Mostrar resumen del estado del servicio
-obtener_estado_servicio $servicio
-
-# Menú principal
 while true; do
+    mostrar_estado_servicio
     mostrar_menu
 
     read -p "Selecciona una opción (1-15): " opcion
 
     case $opcion in
         1)
-            if [ "$activo" == "active" ]; then
-                systemctl stop $servicio
+            if [ "$activo" == "SÍ" ]; then
+                sudo systemctl stop $servicio
             else
-                systemctl start $servicio
+                sudo systemctl start $servicio
             fi
             ;;
         2)
-            if [ "$habilitado" == "enabled" ]; then
-                systemctl disable $servicio
+            if [ "$habilitado" == "SÍ" ]; then
+                sudo systemctl disable $servicio
             else
-                systemctl enable $servicio
+                sudo systemctl enable $servicio
             fi
             ;;
         3)
-            if [ "$enmascarado" == "masked" ]; then
-                systemctl unmask $servicio
+            if [ "$enmascarado" == "SÍ" ]; then
+                sudo systemctl unmask $servicio
             else
-                systemctl mask $servicio
+                sudo systemctl mask $servicio
             fi
             ;;
         4)
             systemctl show $servicio
             ;;
         5)
-            systemctl restart $servicio
+            sudo systemctl restart $servicio
             ;;
         6)
-            systemctl try-restart $servicio
+            sudo systemctl try-restart $servicio
             ;;
         7)
-            systemctl reload $servicio
+            sudo systemctl reload-or-restart $servicio
             ;;
         8)
-            systemctl try-reload $servicio
+            sudo systemctl try-reload-or-restart $servicio
             ;;
         9)
-            systemctl preset $servicio
+            sudo systemctl preset $servicio
             ;;
         10)
             systemd-analyze
             ;;
         11)
-            systemd-analyze critical-chain $servicio
+            systemd-analyze blame | grep "$servicio"
             ;;
         12)
-            systemctl list-units --type=target
+            runlevel
             ;;
         13)
-            systemctl poweroff
+            sudo systemctl poweroff
             ;;
         14)
-            systemctl reboot
+            sudo systemctl reboot
             ;;
         15)
-            echo "Saliendo del script."
-            exit 0
+            exit
             ;;
         *)
             echo "Opción no válida. Por favor, elige una opción del 1 al 15."
